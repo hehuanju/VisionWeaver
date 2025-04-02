@@ -1,0 +1,28 @@
+fastapi>=0.103.1
+uvicorn>=0.23.2
+gunicorn>=21.2.0    
+
+# 大模型相关（使用最新版本）
+langchain>=0.3.20         # LLM应用框架 
+langchain-openai>=0.3.0   # LangChain OpenAI集成
+langchain-deepseek>=0.1.0 # LangChain DeepSeek集成
+langchain-community>=0.0.38 # 社区包
+langchain-google-genai>=0.0.5  # LangChain Google Gemini集成
+langgraph>=0.0.16         # LangChain Agent记忆与状态管理
+google-generativeai>=0.3.2     # Google Gemini API
+google>=0.0.1             # Google API基础包
+
+# 阿里云相关
+aliyun-python-sdk-core>=2.13.36
+oss2>=2.17.0
+Pillow>=10.2.0            # Python图像处理库
+
+# 其他
+python-dotenv>=1.0.0
+pydantic>=2.4.2
+loguru>=0.7.0 
+
+# 数据库
+aiosqlite>=0.19.0          # 异步SQLite驱动
+redis>=4.6.0               # Redis客户端
+aioredis>=2.0.0            # Redis异步客户端
