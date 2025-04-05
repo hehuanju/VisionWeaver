@@ -84,7 +84,15 @@ class ImageGeneratorBot:
             try:
                 width, height = map(int, size.split("x"))
                 aspect_ratio = width / height
-                if aspect_ratio == 1:
+                
+                # 检查提示词中是否已经包含了比例信息
+                ratio_match = re.search(r'按照(\d+:\d+)的比例生成图片', prompt)
+                if ratio_match:
+                    # 用户已经指定了比例，使用用户指定的比例描述
+                    user_ratio = ratio_match.group(1)
+                    logger.info(f"检测到用户在提示词中指定的图片比例: {user_ratio}")
+                    size_desc = f"按照{user_ratio}比例的"
+                elif aspect_ratio == 1:
                     size_desc = "正方形(1:1比例)"
                 elif aspect_ratio > 1:
                     size_desc = f"横向矩形({width}x{height}尺寸，宽高比约{aspect_ratio:.1f}:1)"
@@ -93,7 +101,11 @@ class ImageGeneratorBot:
             except:
                 size_desc = f"{size}尺寸"
                 
-            enhanced_prompt = f"请根据以下描述生成一幅高质量{size_desc}图片: {prompt}。确保图片尺寸为{size}。生成图片和简短描述。"
+            # 构建增强后的提示词，保留用户原始的比例要求
+            if ratio_match:
+                enhanced_prompt = f"请根据以下描述生成一幅高质量{size_desc}图片: {prompt}"
+            else:
+                enhanced_prompt = f"请根据以下描述生成一幅高质量{size_desc}图片: {prompt}。确保图片尺寸为{size}。生成图片和简短描述。"
             
             # 发送请求
             logger.info("使用Google Generative AI原生API发送请求...")
@@ -549,6 +561,32 @@ class ImageGeneratorBot:
             # 记录原始图片尺寸
             original_size = f"{img.width}x{img.height}"
             logger.info(f"图片原始尺寸: {original_size}, 目标尺寸: {target_size}")
+            
+            # 检查原始图片是否已经符合用户请求的比例
+            # 如果原始图片比例与用户指定的比例相近，且仅是尺寸不同，保留原始比例
+            if "generation_info" in image_data and "prompt" in image_data["generation_info"]:
+                prompt = image_data["generation_info"]["prompt"]
+                ratio_match = re.search(r'按照(\d+):(\d+)的比例生成图片', prompt)
+                
+                if ratio_match:
+                    user_ratio_w = int(ratio_match.group(1))
+                    user_ratio_h = int(ratio_match.group(2))
+                    user_aspect_ratio = user_ratio_w / user_ratio_h
+                    img_aspect_ratio = img.width / img.height
+                    
+                    # 如果生成的图片比例已经接近用户要求的比例（允许5%误差），保留原始比例
+                    if abs(img_aspect_ratio - user_aspect_ratio) / user_aspect_ratio < 0.05:
+                        logger.info(f"生成的图片比例({img_aspect_ratio:.2f})接近用户指定比例({user_aspect_ratio:.2f})，保留原始比例")
+                        # 根据用户指定的比例重新计算目标尺寸
+                        if width >= height:
+                            new_width = width
+                            new_height = int(width / user_aspect_ratio)
+                        else:
+                            new_height = height
+                            new_width = int(height * user_aspect_ratio)
+                        
+                        target_size = f"{new_width}x{new_height}"
+                        logger.info(f"根据用户指定比例调整目标尺寸为: {target_size}")
             
             # 如果尺寸已经匹配，无需调整
             if f"{img.width}x{img.height}" == target_size:

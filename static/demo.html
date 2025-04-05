@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionWeaver - AI图像生成工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 900px;
+        }
+        .header {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 1rem;
+            border-radius: 0 0 10px 10px;
+        }
+        .result-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .progress-container {
+            margin: 15px 0;
+            display: none;
+        }
+        #uploadPreview {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 5px;
+            display: none;
+            border-radius: 4px;
+        }
+        .form-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .result-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .api-response {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+            font-size: 0.9em;
+            display: none;
+        }
+        .ratio-btn-group {
+            margin-bottom: 10px;
+        }
+        .ratio-btn-group .btn {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .ratio-btn-group .btn.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        
+        /* 新增：折叠面板样式 */
+        .collapse-header {
+            cursor: pointer;
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .collapse-header:hover {
+            background-color: #e9ecef;
+        }
+        .collapse-content {
+            display: none;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            font-size: 0.85rem;
+        }
+        .collapse-content.show {
+            display: block;
+        }
+        
+        /* 表单组件紧凑样式 */
+        .form-label {
+            margin-bottom: 0.25rem;
+        }
+        .form-text {
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+        }
+        .form-control, .form-select {
+            padding: 0.375rem 0.5rem;
+        }
+        textarea.form-control {
+            min-height: 60px;
+        }
+        .mb-3 {
+            margin-bottom: 0.5rem !important;
+        }
+        .mb-4 {
+            margin-bottom: 0.75rem !important;
+        }
+        
+        /* 自定义滑块样式 */
+        .custom-range {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #e9ecef;
+            outline: none;
+            margin: 10px 0;
+        }
+        
+        /* 滑块轨道样式 - Webkit浏览器 */
+        .custom-range::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 10px;
+            cursor: pointer;
+            background: linear-gradient(to right, #6e8efb, #a777e3);
+            border-radius: 5px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        /* 滑块按钮样式 - Webkit浏览器 */
+        .custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            margin-top: -7px;
+            border: 2px solid #6e8efb;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        /* 滑块按钮悬停效果 */
+        .custom-range::-webkit-slider-thumb:hover {
+            background: #f8f9fa;
+            transform: scale(1.1);
+        }
+        
+        /* 滑块按钮选中效果 */
+        .custom-range:active::-webkit-slider-thumb {
+            background: #e9ecef;
+            box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.3);
+        }
+        
+        /* Firefox的滑块轨道样式 */
+        .custom-range::-moz-range-track {
+            width: 100%;
+            height: 10px;
+            cursor: pointer;
+            background: linear-gradient(to right, #6e8efb, #a777e3);
+            border-radius: 5px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        /* Firefox的滑块按钮样式 */
+        .custom-range::-moz-range-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: 2px solid #6e8efb;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        /* IE的滑块轨道样式 */
+        .custom-range::-ms-track {
+            width: 100%;
+            height: 10px;
+            cursor: pointer;
+            background: transparent;
+            border-color: transparent;
+            color: transparent;
+        }
+        
+        .custom-range::-ms-fill-lower {
+            background: linear-gradient(to right, #6e8efb, #a777e3);
+            border-radius: 5px;
+        }
+        
+        .custom-range::-ms-fill-upper {
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+        
+        /* IE的滑块按钮样式 */
+        .custom-range::-ms-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: 2px solid #6e8efb;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="header text-center">
+        <h1 class="mb-0">VisionWeaver</h1>
+        <p class="lead mb-0">基于LLM的智能图像生成系统</p>
+    </div>
+
+    <div class="container">
+        <div class="form-section">
+            <h2 class="mb-2" style="font-size: 1.5rem;">创建您的AI图像</h2>
+            <form id="imageForm">
+                <div class="mb-3">
+                    <label for="prompt" class="form-label">图像描述</label>
+                    <textarea class="form-control" id="prompt" rows="3" placeholder="例如：一只橙色的猫咪坐在窗台上，窗外是蓝天白云" required></textarea>
+                    <div class="form-text">输入详细的图像描述，系统将为您生成对应的图像</div>
+                </div>
+                
+                <!-- 折叠式安全提示和限流说明 -->
+                <div class="mb-3">
+                    <div class="collapse-header" id="securityHeader">
+                        <span><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>内容安全提示</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="collapse-content" id="securityContent">
+                        <p class="mb-1">为保障平台安全，系统会自动过滤并拒绝包含以下内容的请求：</p>
+                        <ul class="mb-1 ps-4">
+                            <li>违法犯罪相关内容（如毒品、武器、犯罪行为等）</li>
+                            <li>暴力、血腥、恐怖内容</li>
+                            <li>色情、赌博等不良内容</li>
+                            <li>试图规避过滤的行为（如使用特殊字符分隔敏感词）</li>
+                        </ul>
+                        <p class="mb-0">违反规定的请求将被系统自动拦截并返回403错误。</p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="collapse-header" id="limitHeader">
+                        <span><i class="bi bi-info-circle-fill text-info me-1"></i>请求限制说明</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="collapse-content" id="limitContent">
+                        <p class="mb-1">为确保服务质量，系统实施了以下限制：</p>
+                        <ul class="mb-1 ps-4">
+                            <li>同一时间只允许处理一个图像生成请求</li>
+                            <li>如有其他用户正在生成图像，您的请求将被暂时排队</li>
+                            <li>生成过程通常需要30-60秒，请耐心等待</li>
+                        </ul>
+                        <p class="mb-0">当系统繁忙时，您可能会收到429错误，请稍后再试。</p>
+                    </div>
+                </div>
+
+                <!-- 紧凑排列的主要设置 -->
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <label class="form-label">图像比例</label>
+                            <div class="ratio-btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-primary ratio-btn" data-ratio="1:1">1:1</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary ratio-btn" data-ratio="4:3">4:3</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary ratio-btn" data-ratio="3:4">3:4</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary ratio-btn" data-ratio="16:9">16:9</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary ratio-btn" data-ratio="9:16">9:16</button>
+                            </div>
+                            <input type="hidden" id="selectedRatio" value="">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <label for="modelSelect" class="form-label">选择模型</label>
+                            <select class="form-select form-select-sm" id="modelSelect">
+                                <option value="gemini-1.5-pro" selected>Gemini 1.5 Pro</option>
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label for="temperatureRange" class="form-label">创造性程度: <span id="temperatureValue">0.7</span></label>
+                        <input type="range" class="custom-range" min="0.1" max="1" step="0.1" id="temperatureRange" value="0.7">
+                        <div class="form-text">低值更精确，高值更创意</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="imageFile" class="form-label">上传图像（可选）</label>
+                        <input class="form-control form-control-sm" type="file" id="imageFile" accept="image/*">
+                        <img id="uploadPreview" alt="上传预览">
+                    </div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary" id="generateBtn">生成图像</button>
+                </div>
+            </form>
+
+            <div class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2" id="statusMessage">正在处理您的请求...</p>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress" style="height: 15px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <p class="text-center mt-1" id="progressText">初始化生成过程...</p>
+            </div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h3>生成结果</h3>
+            <div class="text-center mb-3">
+                <img class="result-image" id="resultImage" alt="生成的图像">
+            </div>
+            <div class="mb-3">
+                <h4>AI解释</h4>
+                <p id="aiExplanation"></p>
+            </div>
+            <button class="btn btn-outline-secondary" id="showResponseBtn">显示API响应</button>
+            <div class="api-response" id="apiResponse"></div>
+        </div>
+    </div>
+
+    <footer class="text-center py-4 text-muted">
+        <p>© 2023-2024 VisionWeaver - 基于LLM的智能图像生成系统</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 折叠面板功能
+            document.getElementById('securityHeader').addEventListener('click', function() {
+                document.getElementById('securityContent').classList.toggle('show');
+                this.querySelector('.bi-chevron-down').classList.toggle('bi-chevron-up');
+            });
+            
+            document.getElementById('limitHeader').addEventListener('click', function() {
+                document.getElementById('limitContent').classList.toggle('show');
+                this.querySelector('.bi-chevron-down').classList.toggle('bi-chevron-up');
+            });
+            
+            // 更新温度值显示
+            const temperatureRange = document.getElementById('temperatureRange');
+            const temperatureValue = document.getElementById('temperatureValue');
+            
+            // 修复创造性程度滑块的问题
+            temperatureRange.oninput = function() {
+                temperatureValue.textContent = this.value;
+            };
+            
+            // 确保初始值正确显示
+            temperatureValue.textContent = temperatureRange.value;
+            
+            // 初始化示例提示词按钮
+            const examplePromptButtons = document.querySelectorAll('.example-prompt');
+            const promptTextarea = document.getElementById('prompt');
+            
+            examplePromptButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    promptTextarea.value = this.getAttribute('data-prompt');
+                });
+            });
+            
+            // 初始化比例按钮
+            const ratioButtons = document.querySelectorAll('.ratio-btn');
+            const selectedRatioInput = document.getElementById('selectedRatio');
+            
+            // 比例按钮点击事件
+            ratioButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除所有按钮的active类
+                    ratioButtons.forEach(b => b.classList.remove('active'));
+                    // 为当前按钮添加active类
+                    this.classList.add('active');
+                    // 保存选中的比例
+                    selectedRatioInput.value = this.getAttribute('data-ratio');
+                });
+            });
+
+            // 上传图像预览
+            const imageFile = document.getElementById('imageFile');
+            const uploadPreview = document.getElementById('uploadPreview');
+            
+            imageFile.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        uploadPreview.src = e.target.result;
+                        uploadPreview.style.display = 'block';
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    uploadPreview.style.display = 'none';
+                }
+            });
+
+            // 显示API响应切换
+            document.getElementById('showResponseBtn').addEventListener('click', function() {
+                const apiResponse = document.getElementById('apiResponse');
+                if (apiResponse.style.display === 'block') {
+                    apiResponse.style.display = 'none';
+                    this.textContent = '显示API响应';
+                } else {
+                    apiResponse.style.display = 'block';
+                    this.textContent = '隐藏API响应';
+                }
+            });
+
+            // 表单提交处理
+            document.getElementById('imageForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // 获取表单值
+                let prompt = document.getElementById('prompt').value;
+                const imageFile = document.getElementById('imageFile').files[0];
+                const model = document.getElementById('modelSelect').value;
+                const temperature = document.getElementById('temperatureRange').value;
+                const selectedRatio = document.getElementById('selectedRatio').value;
+                
+                // 如果用户选择了比例，添加到提示词中
+                if (selectedRatio) {
+                    prompt += ` 按照${selectedRatio}的比例生成图片`;
+                }
+                
+                // 显示加载指示器
+                document.querySelector('.loading').style.display = 'block';
+                document.getElementById('generateBtn').disabled = true;
+                document.getElementById('resultSection').style.display = 'none';
+                document.querySelector('.progress-container').style.display = 'block';
+                
+                try {
+                    // 准备表单数据
+                    const formData = new FormData();
+                    formData.append('prompt', prompt);
+                    formData.append('model', model);
+                    formData.append('temperature', temperature);
+                    
+                    // 添加图像（如果有）
+                    if (imageFile) {
+                        formData.append('images', imageFile);
+                    }
+                    
+                    // 发送请求
+                    const endpoint = imageFile ? '/v1/generate_with_image' : '/v1/generate';
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: imageFile ? formData : JSON.stringify({
+                            prompt: prompt,
+                            style: null,
+                            size: "1024x1024",
+                            count: 1
+                        }),
+                        headers: imageFile ? {} : {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    // 检查响应
+                    if (!response.ok) {
+                        const statusCode = response.status;
+                        
+                        // 尝试获取错误详情
+                        let errorDetail = "";
+                        try {
+                            const errorData = await response.json();
+                            errorDetail = errorData.detail || "";
+                        } catch (e) {
+                            // 无法解析JSON，使用状态文本
+                            errorDetail = response.statusText;
+                        }
+                        
+                        // 特殊处理不同的状态码
+                        if (statusCode === 403) {
+                            throw new Error(`内容安全检查未通过: ${errorDetail}`);
+                        } else if (statusCode === 429) {
+                            throw new Error(`系统繁忙: 当前有其他用户正在生成图像，请稍后再试`);
+                        } else {
+                            throw new Error(`API错误 (${statusCode}): ${errorDetail}`);
+                        }
+                    }
+                    
+                    // 解析响应
+                    const data = await response.json();
+                    
+                    // 更新状态消息
+                    document.getElementById('statusMessage').textContent = data.message;
+                    
+                    // 轮询任务状态
+                    await pollTaskStatus(data.request_id);
+                    
+                } catch (error) {
+                    console.error('生成图像时出错:', error);
+                    
+                    // 创建更友好的错误消息框
+                    const errorMessage = error.message || "未知错误";
+                    document.getElementById('statusMessage').textContent = `错误: ${errorMessage}`;
+                    
+                    // 如果是内容安全或限流错误，显示更醒目的提示
+                    if (errorMessage.includes('内容安全') || errorMessage.includes('系统繁忙')) {
+                        // 替换旧的loading部分，显示一个更醒目的错误提示
+                        const loadingElement = document.querySelector('.loading');
+                        
+                        // 保存原始的loading HTML以便后续恢复
+                        if (!loadingElement.dataset.originalHtml) {
+                            loadingElement.dataset.originalHtml = loadingElement.innerHTML;
+                        }
+                        
+                        // 设置错误样式和内容
+                        loadingElement.innerHTML = `
+                            <div class="alert ${errorMessage.includes('内容安全') ? 'alert-danger' : 'alert-warning'} text-center">
+                                <i class="bi ${errorMessage.includes('内容安全') ? 'bi-shield-exclamation' : 'bi-hourglass-split'} fs-1 d-block mb-2"></i>
+                                <h5>${errorMessage.includes('内容安全') ? '内容安全检查未通过' : '系统繁忙'}</h5>
+                                <p>${errorMessage}</p>
+                                <button class="btn btn-outline-secondary btn-sm mt-2" id="dismissErrorBtn">关闭</button>
+                            </div>
+                        `;
+                        
+                        // 添加关闭错误消息的监听器
+                        document.getElementById('dismissErrorBtn').addEventListener('click', function() {
+                            // 恢复原始loading内容
+                            loadingElement.innerHTML = loadingElement.dataset.originalHtml;
+                            loadingElement.style.display = 'none';
+                            document.getElementById('generateBtn').disabled = false;
+                        });
+                    } else {
+                        // 普通错误，只修改文本并隐藏loading
+                        document.querySelector('.loading').style.display = 'none';
+                        document.getElementById('generateBtn').disabled = false;
+                    }
+                    
+                    document.querySelector('.progress-container').style.display = 'none';
+                }
+            });
+            
+            // 轮询任务状态
+            async function pollTaskStatus(requestId) {
+                try {
+                    let completed = false;
+                    let attempts = 0;
+                    const maxAttempts = 60; // 最多轮询60次
+                    
+                    while (!completed && attempts < maxAttempts) {
+                        attempts++;
+                        
+                        // 等待1秒
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // 获取任务状态
+                        const statusResponse = await fetch(`/v1/status/${requestId}`);
+                        
+                        if (!statusResponse.ok) {
+                            if (statusResponse.status === 404) {
+                                // 任务可能尚未开始，继续等待
+                                continue;
+                            }
+                            throw new Error(`获取状态时出错: ${statusResponse.status}`);
+                        }
+                        
+                        const statusData = await statusResponse.json();
+                        
+                        // 更新进度条和状态文本
+                        document.getElementById('progressBar').style.width = `${statusData.progress || 0}%`;
+                        document.getElementById('progressText').textContent = statusData.message;
+                        
+                        // 检查任务是否完成
+                        if (statusData.status === 'completed' || statusData.status === 'failed') {
+                            completed = true;
+                            
+                            // 获取最终结果
+                            await getTaskResult(requestId);
+                        }
+                    }
+                    
+                    if (!completed) {
+                        throw new Error('任务超时');
+                    }
+                    
+                } catch (error) {
+                    console.error('轮询任务状态时出错:', error);
+                    document.getElementById('statusMessage').textContent = `错误: ${error.message}`;
+                    document.querySelector('.loading').style.display = 'none';
+                    document.getElementById('generateBtn').disabled = false;
+                    document.querySelector('.progress-container').style.display = 'none';
+                }
+            }
+            
+            // 获取任务结果
+            async function getTaskResult(requestId) {
+                try {
+                    const resultResponse = await fetch(`/v1/result/${requestId}`);
+                    
+                    if (!resultResponse.ok) {
+                        throw new Error(`获取结果时出错: ${resultResponse.status}`);
+                    }
+                    
+                    const resultData = await resultResponse.json();
+                    
+                    // 隐藏加载指示器
+                    document.querySelector('.loading').style.display = 'none';
+                    document.getElementById('generateBtn').disabled = false;
+                    document.querySelector('.progress-container').style.display = 'none';
+                    
+                    // 显示结果
+                    if (resultData.status === 'completed' && resultData.images && resultData.images.length > 0) {
+                        document.getElementById('resultSection').style.display = 'block';
+                        document.getElementById('resultImage').src = resultData.images[0];
+                        document.getElementById('apiResponse').textContent = JSON.stringify(resultData, null, 2);
+                        
+                        // 提取AI解释（从message字段或其他可能包含解释的字段）
+                        document.getElementById('aiExplanation').textContent = resultData.message || '图像生成成功';
+                    } else {
+                        // 显示错误消息
+                        alert(`生成失败: ${resultData.message}`);
+                    }
+                    
+                } catch (error) {
+                    console.error('获取任务结果时出错:', error);
+                    document.getElementById('statusMessage').textContent = `错误: ${error.message}`;
+                    document.querySelector('.loading').style.display = 'none';
+                    document.getElementById('generateBtn').disabled = false;
+                    document.querySelector('.progress-container').style.display = 'none';
+                }
+            }
+        });
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

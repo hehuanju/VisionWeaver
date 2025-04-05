@@ -503,9 +503,34 @@ class VisionWeaverEngine:
             
             # 修复：正确使用ainvoke方法，将参数打包成字典作为input参数
             logger.debug(f"调用generate_image工具，提示词: {image_prompt[:50]}...")
+            
+            # 检查用户输入中是否指定了特定比例
+            size = "1024x1024"  # 默认尺寸
+            ratio_match = re.search(r'按照(\d+):(\d+)的比例生成图片', filtered_user_input)
+            
+            if ratio_match:
+                # 用户指定了比例，提取比例值
+                ratio_w = int(ratio_match.group(1))
+                ratio_h = int(ratio_match.group(2))
+                
+                # 根据比例设置尺寸，保持总像素量接近标准尺寸
+                if ratio_w >= ratio_h:  # 横向或正方形
+                    width = 1024
+                    height = int(width * ratio_h / ratio_w)
+                    # 确保高度为偶数（某些模型需要）
+                    height = height if height % 2 == 0 else height + 1
+                else:  # 纵向
+                    height = 1024
+                    width = int(height * ratio_w / ratio_h)
+                    # 确保宽度为偶数
+                    width = width if width % 2 == 0 else width + 1
+                
+                size = f"{width}x{height}"
+                logger.info(f"检测到用户指定比例 {ratio_w}:{ratio_h}，设置生成尺寸为 {size}")
+            
             image_result = await generate_image.ainvoke({
                 "prompt": image_prompt,
-                "size": "1024x1024",  # 默认尺寸
+                "size": size,  # 使用根据比例计算的尺寸
                 "return_oss_url": True  # 要求返回可访问的OSS URL
             })
             
